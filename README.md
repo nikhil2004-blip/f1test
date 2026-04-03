@@ -2,7 +2,7 @@
 
 A hyper-realistic, scroll-driven 3D web experience designed to showcase an F1 Power Unit and chassis architecture using modern web technologies. Engineered with a brutalist "Mercedes-AMG Hacker" aesthetic.
 
-![Hero Showcase](public/preview/hero.png)
+![Landing UI](public/preview/1_landing.png)
 
 ## Overview
 
@@ -10,7 +10,7 @@ This project pushes the boundaries of web-based 3D rendering and storytelling. R
 
 The experience is accompanied by a generative, aggressive V6 Turbo Hybrid audio engine that dynamically responds to interaction.
 
-![Exploded Blueprint View](public/preview/exploded.png)
+![Exploded Blueprint View](public/preview/3_exploded.png)
 
 ## Core Features
 
@@ -20,7 +20,7 @@ The experience is accompanied by a generative, aggressive V6 Turbo Hybrid audio 
 - **Dynamic HUD**: HTML overlays locked directly onto 3D world coordinates for absolute precision, complete with real-time scaling and perspective rendering via `@react-three/drei`.
 - **Absolute CSS Rendering**: Eliminated jittery JS-based sticky effects in favor of bulletproof native CSS DOM layout for high-performance typography scaling and absolute positioning.
 
-![Race Mode Deployment](public/preview/racemode.png)
+![Race Mode Deployment](public/preview/5_racemode.png)
 
 ## Technology Stack
 
