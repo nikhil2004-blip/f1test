@@ -1,5 +1,5 @@
 "use client";
-
+//final code
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment, ContactShadows, PerspectiveCamera, Html, MeshReflectorMaterial, Lightformer } from "@react-three/drei";
 import { Suspense, useRef, useState, useMemo } from "react";
@@ -12,12 +12,12 @@ import CarModel from "./CarModel";
 if (typeof window !== "undefined") gsap.registerPlugin(ScrollTrigger);
 
 const LABELS = [
-  { pos: [0,   -1,   5.2] as [number,number,number], title: "Front Wing",      sub: "35% Front Downforce",   color: "#00D2BE" },
-  { pos: [0,    3.2,-4.5] as [number,number,number], title: "Rear Wing",       sub: "High-Downforce Spec",   color: "#00D2BE" },
-  { pos: [-2.2, 1.5,-3.2] as [number,number,number], title: "V6 Turbo Hybrid", sub: "1000+ HP Power Unit",  color: "#E3001B" },
-  { pos: [4.5,  0.8, 0.5] as [number,number,number], title: "Zero-Pod",        sub: "Minimal Cooling Cell",  color: "#00D2BE" },
-  { pos: [0.5,  5.2, 0.5] as [number,number,number], title: "Halo",            sub: "Titanium Safety Arc",   color: "#C9A84C" },
-  { pos: [-3.5,-0.6, 2.2] as [number,number,number], title: "Floor & Diffuser",sub: "Ground Effect System",  color: "#00D2BE" },
+  { pos: [0, -1, 5.2] as [number, number, number], title: "Front Wing", sub: "35% Front Downforce", color: "#00D2BE" },
+  { pos: [0, 3.2, -4.5] as [number, number, number], title: "Rear Wing", sub: "High-Downforce Spec", color: "#00D2BE" },
+  { pos: [-2.2, 1.5, -3.2] as [number, number, number], title: "V6 Turbo Hybrid", sub: "1000+ HP Power Unit", color: "#E3001B" },
+  { pos: [4.5, 0.8, 0.5] as [number, number, number], title: "Zero-Pod", sub: "Minimal Cooling Cell", color: "#00D2BE" },
+  { pos: [0.5, 5.2, 0.5] as [number, number, number], title: "Halo", sub: "Titanium Safety Arc", color: "#C9A84C" },
+  { pos: [-3.5, -0.6, 2.2] as [number, number, number], title: "Floor & Diffuser", sub: "Ground Effect System", color: "#00D2BE" },
 ];
 
 function PartLabel({ title, sub, color, visible }: { title: string; sub: string; color: string; visible: boolean }) {
@@ -102,12 +102,12 @@ const playEngineSound = () => {
 };
 
 function SceneContent() {
-  const camRef    = useRef<THREE.PerspectiveCamera>(null);
-  const carRef    = useRef<THREE.Group>(null);
-  const lookRef   = useRef(new THREE.Vector3(0, 0.4, 0));
-  const floatRef  = useRef<THREE.Group>(null);
+  const camRef = useRef<THREE.PerspectiveCamera>(null);
+  const carRef = useRef<THREE.Group>(null);
+  const lookRef = useRef(new THREE.Vector3(0, 0.4, 0));
+  const floatRef = useRef<THREE.Group>(null);
   const explodeRef = useRef(0);
-  const prevLabel  = useRef(false);
+  const prevLabel = useRef(false);
   const [labelsOn, setLabelsOn] = useState(false);
 
   useGSAP(() => {
@@ -145,8 +145,8 @@ function SceneContent() {
       }
     };
 
-    const cam  = camRef.current;
-    const car  = carRef.current;
+    const cam = camRef.current;
+    const car = carRef.current;
     const look = lookRef.current;
 
     const tl = gsap.timeline({
@@ -154,51 +154,51 @@ function SceneContent() {
     });
 
     // Sc2 — Initial text appear (camera pulls in slightly)
-    tl.to(cam.position, { x: 6.5, y: 2.2,  z: 6.5,   ease: "power2.inOut" }, 0)
-      .to(look,         { x: 0,   y: 0.4,  z: 0,   ease: "power2.inOut" }, 0)
+    tl.to(cam.position, { x: 6.5, y: 2.2, z: 6.5, ease: "power2.inOut" }, 0)
+      .to(look, { x: 0, y: 0.4, z: 0, ease: "power2.inOut" }, 0)
       .to(car.rotation, { y: Math.PI / 12, ease: "power2.inOut" }, 0);
 
     // Sc3 — Front wing
-    tl.to(cam.position, { x: 0,   y: 0.6,  z: 5.8, ease: "power2.inOut" }, 1)
-      .to(look,         { x: 0,   y: 0.2,  z: 2,   ease: "power2.inOut" }, 1)
-      .to(car.rotation, { y: Math.PI / 6,  ease: "power2.inOut" }, 1);
+    tl.to(cam.position, { x: 0, y: 0.6, z: 5.8, ease: "power2.inOut" }, 1)
+      .to(look, { x: 0, y: 0.2, z: 2, ease: "power2.inOut" }, 1)
+      .to(car.rotation, { y: Math.PI / 6, ease: "power2.inOut" }, 1);
 
     // Sc4 — Sidepod
-    tl.to(cam.position, { x: 5.8, y: 1.0,  z: 0,   ease: "power2.inOut" }, 2)
-      .to(look,         { x: 0,   y: 0.4,  z: 0,   ease: "power2.inOut" }, 2)
+    tl.to(cam.position, { x: 5.8, y: 1.0, z: 0, ease: "power2.inOut" }, 2)
+      .to(look, { x: 0, y: 0.4, z: 0, ease: "power2.inOut" }, 2)
       .to(car.rotation, { y: -Math.PI / 10, ease: "power2.inOut" }, 2);
 
     // Sc5 — Engine rear
-    tl.to(cam.position, { x: -4.5,y: 3.0, z: -3.9, ease: "power2.inOut" }, 3)
-      .to(look,         { x:  0,  y: 0.7, z: -0.8, ease: "power2.inOut" }, 3)
+    tl.to(cam.position, { x: -4.5, y: 3.0, z: -3.9, ease: "power2.inOut" }, 3)
+      .to(look, { x: 0, y: 0.7, z: -0.8, ease: "power2.inOut" }, 3)
       .to(car.rotation, { y: -Math.PI / 4, ease: "power2.inOut" }, 3);
 
     // Sc6 — Cockpit
-    tl.to(cam.position, { x: 0,   y: 2.2,  z: 1.2,  ease: "power2.inOut" }, 4)
-      .to(look,         { x: 0,   y: 1.0,  z: -0.4, ease: "power2.inOut" }, 4)
-      .to(car.rotation, { y: 0,            ease: "power2.inOut" }, 4);
+    tl.to(cam.position, { x: 0, y: 2.2, z: 1.2, ease: "power2.inOut" }, 4)
+      .to(look, { x: 0, y: 1.0, z: -0.4, ease: "power2.inOut" }, 4)
+      .to(car.rotation, { y: 0, ease: "power2.inOut" }, 4);
 
     // Sc7 — Exploded
-    tl.to(cam.position, { x: 9.8, y: 7.7, z: 9.8,  ease: "power2.inOut" }, 5)
-      .to(look,         { x: 0,  y: 1,   z: 0,  ease: "power2.inOut" }, 5)
+    tl.to(cam.position, { x: 9.8, y: 7.7, z: 9.8, ease: "power2.inOut" }, 5)
+      .to(look, { x: 0, y: 1, z: 0, ease: "power2.inOut" }, 5)
       .to(car.rotation, { y: Math.PI * 1.5, ease: "power2.inOut" }, 5)
-      .to(animProps,    { explode: 1, ease: "power2.inOut", onUpdate: updateExplode }, 5);
+      .to(animProps, { explode: 1, ease: "power2.inOut", onUpdate: updateExplode }, 5);
 
     let lastP = 0;
     // Sc8 — Race mode (and trigger aggressive engine sound)
     tl.to(cam.position, { x: 0, y: 1.0, z: -7.0, ease: "power2.inOut" }, 6)
-      .to(look,         { x: 0, y: 0.5,  z: 3,   ease: "power2.inOut" }, 6)
+      .to(look, { x: 0, y: 0.5, z: 3, ease: "power2.inOut" }, 6)
       .to(car.rotation, { y: Math.PI * 2, ease: "power2.inOut" }, 6)
-      .to(animProps,    { 
-        explode: 0, 
-        ease: "power2.inOut", 
-        onUpdate: function() {
+      .to(animProps, {
+        explode: 0,
+        ease: "power2.inOut",
+        onUpdate: function () {
           updateExplode();
           const p = this.progress();
           // Trigger audio only when scrolling DOWN deeply into the final section
           if (p > 0.8 && p > lastP) playEngineSound();
           lastP = p;
-        } 
+        }
       }, 6);
   }, { dependencies: [] });
 
@@ -222,18 +222,18 @@ function SceneContent() {
       {/* ── Hyper-realistic Studio Lighting ─────────────────────────────── */}
       {/* Base ambient to ensure absolute visibility of black carbon fiber */}
       <ambientLight intensity={4} color="#ffffff" />
-      
+
       {/* Key light for heavy detail on carbon textures */}
       <directionalLight position={[5, 10, 5]} intensity={8} color="#ffffff" castShadow />
       <directionalLight position={[-5, 5, 8]} intensity={6} color="#e0f0ff" />
       <directionalLight position={[0, -2, -8]} intensity={5} color="#00D2BE" />
-      
+
       {/* Sharp rim lighting from behind/sides for edge highlights */}
       <spotLight position={[-8, 4, -8]} intensity={45} color="#00D2BE" angle={0.6} penumbra={1} distance={30} />
-      <spotLight position={[ 8, 4, -8]} intensity={45} color="#00D2BE" angle={0.6} penumbra={1} distance={30} />
-      
+      <spotLight position={[8, 4, -8]} intensity={45} color="#00D2BE" angle={0.6} penumbra={1} distance={30} />
+
       {/* Top down fill to hit the upper chassis and halo */}
-      <spotLight position={[ 0, 12, 0]} intensity={30} color="#ffffff" angle={0.6} penumbra={0.5} distance={20} />
+      <spotLight position={[0, 12, 0]} intensity={30} color="#ffffff" angle={0.6} penumbra={0.5} distance={20} />
 
       {/* HDRI Environment for maximum glossy reflections on the car's metallic surfaces 
           (Not set to background, so the stage remains a clean matte dark void) */}
@@ -296,7 +296,7 @@ export default function F1Scene() {
     >
       <color attach="background" args={["#050505"]} />
       <fog attach="fog" args={["#050505", 10, 40]} />
-      
+
       <Suspense fallback={null}>
         <SceneContent />
         <Sparkles count={600} scale={35} size={1.8} speed={0.5} opacity={0.55} color="#00D2BE" />

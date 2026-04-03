@@ -472,24 +472,50 @@ function Experience() {
         </section>
 
         {/* Sc8 — Race Mode */}
-        <section style={{ minHeight: "180vh", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-start", padding: "0 clamp(20px,6vw,72px)" }}>
-          <div style={{ pointerEvents: "auto", maxWidth: 400 }}>
-            <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.45em", textTransform: "uppercase", color: "rgba(0,210,190,.6)", marginBottom: 14 }}>06 / Track Ready</p>
-            <h2 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(32px,6vw,60px)", fontWeight: 900, textTransform: "uppercase", lineHeight: 1, marginBottom: 16, letterSpacing: "-0.02em" }}>
-              <span style={{ display: "block", background: "linear-gradient(135deg, #fff 40%, #00D2BE)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Race</span>
-              <span style={{ display: "block", color: "#00D2BE", WebkitTextFillColor: "#00D2BE" }}>Mode.</span>
+        <section style={{ minHeight: "220vh", position: "relative" }}>
+          {/* This wrapper sits exactly mapped to the top 50% of the screen ONLY when scrolled to the absolute bottom */}
+          <div style={{ 
+            position: "absolute", 
+            bottom: "45vh", /* Lifts the bounding box just above the car */
+            left: 0, 
+            right: 0, 
+            height: "50vh", 
+            display: "flex", 
+            flexDirection: "column", 
+            justifyContent: "center", 
+            alignItems: "center", 
+            padding: "0 20px",
+            pointerEvents: "auto",
+          }}>
+            <div style={{ textAlign: "center", maxWidth: 1000 }}>
+            <h2 style={{ 
+              fontFamily: "var(--font-display)", 
+              fontSize: "clamp(40px, 8vw, 100px)", 
+              fontWeight: 900, 
+              fontStyle: "italic",
+              textTransform: "uppercase", 
+              lineHeight: 1, 
+              margin: 0,
+              letterSpacing: "0.02em",
+              background: "linear-gradient(to bottom, #00D2BE, #fff)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              filter: "drop-shadow(0 0 30px rgba(0,210,190,0.3))"
+            }}>
+              RACE MODE
             </h2>
-            <p style={{ fontFamily: "var(--font-body)", fontSize: 14, color: "rgba(180,195,212,.7)", lineHeight: 1.7, background: "rgba(3,4,8,.65)", backdropFilter: "blur(10px)", padding: "16px 18px", borderRadius: 8, border: "1px solid rgba(255,255,255,.06)", borderLeft: "3px solid #00D2BE", marginBottom: 24 }}>
-              From pit lane to 340 km/h in under 8 seconds. Every system primed. Every parameter optimised. The W14 at its most lethal.
+            <p style={{ 
+              fontFamily: "var(--font-mono)", 
+              fontSize: "clamp(10px, 1.2vw, 14px)", 
+              letterSpacing: "0.6em", 
+              textTransform: "uppercase", 
+              color: "rgba(0,210,190,0.9)",
+              marginTop: 20,
+              fontWeight: "bold"
+            }}>
+              DEPLOYING MAXIMUM PERFORMANCE
             </p>
-            <div style={{ display: "flex", gap: "24px", flexWrap: "wrap" }}>
-              {[["339", "km/h Top Speed"], ["1.8s", "Pit Stop Target"], ["15,000", "RPM Redline"]].map(([v, l]) => (
-                <div key={l} style={{ pointerEvents: "auto" }}>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: "clamp(20px,2.5vw,28px)", fontWeight: 900, color: "#fff", lineHeight: 1 }}>{v}</div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(0,210,190,.6)", marginTop: 6 }}>{l}</div>
-                </div>
-              ))}
-            </div>
+          </div>
           </div>
         </section>
 
@@ -545,8 +571,8 @@ const playStartSound = () => {
 
       g.gain.setValueAtTime(0, startTime);
       g.gain.linearRampToValueAtTime(vol, startTime + 0.04);
-      g.gain.setValueAtTime(vol, stopTime - 0.1); // HOLD full volume until the very end
-      g.gain.linearRampToValueAtTime(0.001, stopTime);  // only 0.1s fade to avoid abrupt cut
+      g.gain.linearRampToValueAtTime(vol, stopTime - 0.5); // HOLD volume securely
+      g.gain.exponentialRampToValueAtTime(0.001, stopTime); // Noticeable 0.5s fade
 
       osc.connect(f); f.connect(distortion); distortion.connect(g); g.connect(ctx.destination);
       osc.start(startTime); osc.stop(stopTime);
