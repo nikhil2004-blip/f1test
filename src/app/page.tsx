@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import F1Overlay from "@/components/F1Overlay";
+import { useProgress } from "@react-three/drei";
 
 const F1Scene = dynamic(() => import("@/components/F1Scene"), { ssr: false, loading: () => null });
 
@@ -309,25 +310,48 @@ function LandingPage({ onStart }: { onStart: () => void }) {
 const LOAD_TEXTS = ["CONNECTING TO TELEMETRY", "FETCHING AERO MAPS", "POWERING MGU-K", "INITIALIZING 3D ENGINE", "SYSTEMS OPTIMAL"];
 
 function LoadingScreen({ onComplete }: { onComplete: () => void }) {
+  const { active, progress } = useProgress();
   const [pct, setPct] = useState(0);
   const [txt, setTxt] = useState(LOAD_TEXTS[0]);
   const DURATION = 4200;
+  
+  const startRef = useRef(Date.now());
+  const completeRef = useRef(false);
 
   useEffect(() => {
-    const start = Date.now();
     let raf: number;
     const tick = () => {
-      const p = Math.min(1, (Date.now() - start) / DURATION);
-      const eased = 1 - Math.pow(1 - p, 4);
-      const val = Math.floor(eased * 100);
-      setPct(val);
-      setTxt(LOAD_TEXTS[Math.min(LOAD_TEXTS.length - 1, Math.floor(eased * LOAD_TEXTS.length))]);
-      if (p < 1) { raf = requestAnimationFrame(tick); }
-      else { setTimeout(onComplete, 500); }
+      if (completeRef.current) return;
+      const elapsed = Date.now() - startRef.current;
+      const timeP = Math.min(1, Math.max(0, elapsed / DURATION));
+      const eased = 1 - Math.pow(1 - timeP, 4);
+
+      let realProgress = Math.floor(eased * 100);
+      
+      // If Drei is still actively loading the 3D model, cap progress to 99%
+      // Initial progress=0 and active=false might happen before canvas spins up
+      // so we use a fallback heuristic: if we are at 99% and process hasn't finished, hold it there.
+      const isActuallyLoading = active || progress < 100;
+      
+      if (isActuallyLoading && realProgress >= 99) {
+        realProgress = 99;
+      }
+      
+      setPct(realProgress);
+      setTxt(LOAD_TEXTS[Math.min(LOAD_TEXTS.length - 1, Math.floor(eased * (LOAD_TEXTS.length - 1)))]);
+      
+      if (timeP >= 1 && !isActuallyLoading && progress === 100) {
+        completeRef.current = true;
+        setPct(100);
+        setTxt("SYSTEMS OPTIMAL");
+        setTimeout(onComplete, 500);
+      } else {
+        raf = requestAnimationFrame(tick);
+      }
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [onComplete]);
+  }, [onComplete, active, progress]);
 
   return (
     <div style={{
