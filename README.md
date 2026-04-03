@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# F1® "Night Tech" 3D Viewer
 
-## Getting Started
+A hyper-realistic, scroll-driven 3D web experience designed to showcase an F1 Power Unit and chassis architecture using modern web technologies. Engineered with a brutalist "Mercedes-AMG Hacker" aesthetic.
 
-First, run the development server:
+![Hero Showcase](public/preview/hero.png)
+
+## Overview
+
+This project pushes the boundaries of web-based 3D rendering and storytelling. Rather than a static model or standard turntable, the F1 "Night Tech" viewer uses deep GSAP timeline synchronization linked directly to user scrolling to meticulously reconstruct a Formula 1 car part-by-part.
+
+The experience is accompanied by a generative, aggressive V6 Turbo Hybrid audio engine that dynamically responds to interaction.
+
+![Exploded Blueprint View](public/preview/exploded.png)
+
+## Core Features
+
+- **Generative V6 Turbo Audio Engine**: A custom Web Audio API synthesizer that dynamically generates aggressive Formula 1 engine sounds with mathematically simulated turbo-whine, distortion bites, and resonance clipping (zero external MP3 assets used).
+- **Cinematic Scrollytelling**: 8 distinct GSAP `ScrollTrigger` camera maneuvers perfectly choreographed to the DOM flow, culminating in an intricate "Exploded Blueprint View" separating 80,000 components into mass vectors.
+- **Aggressive Night-Tech Aesthetics**: A bespoke dark mode UI featuring glowing '#00D2BE' teal highlights, raw data telemetry, and precision grid overlays mirroring Mercedes-AMG Petronas F1 visual guidelines.
+- **Dynamic HUD**: HTML overlays locked directly onto 3D world coordinates for absolute precision, complete with real-time scaling and perspective rendering via `@react-three/drei`.
+- **Absolute CSS Rendering**: Eliminated jittery JS-based sticky effects in favor of bulletproof native CSS DOM layout for high-performance typography scaling and absolute positioning.
+
+![Race Mode Deployment](public/preview/racemode.png)
+
+## Technology Stack
+
+- **Framework**: `Next.js 15` (App Router)
+- **3D Engine**: `Three.js` + `@react-three/fiber`
+- **Animation**: `GSAP` + `ScrollTrigger`
+- **Styling**: Native CSS Modules + Flexbox/Grid
+- **Audio**: Web Audio API `AudioContext`
+- **Deployment**: Vercel
+
+## Local Development
 
 ```bash
+# Install dependencies
+npm install
+
+# Start the dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result. Scroll down smoothly to experience the timeline injection and audio synthesis!
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deployment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is fully optimized for Vercel. With WebGL textures and logic heavily offloaded to the client GPU, the server footprint natively fits inside standard serverless edge constraints.
