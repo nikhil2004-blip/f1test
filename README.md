@@ -2,7 +2,8 @@
 
 A hyper-realistic, scroll-driven 3D web experience designed to showcase an F1 Power Unit and chassis architecture using modern web technologies. Engineered with a brutalist "Mercedes-AMG Hacker" aesthetic.
 
-![Landing UI](public/preview/1_landing.png)
+![Landing UI](public/preview/3_exploded.png)
+(public/preview/1_landing.png)
 
 ## Overview
 
