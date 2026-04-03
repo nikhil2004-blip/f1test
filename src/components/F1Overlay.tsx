@@ -1,176 +1,253 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+// ── Tiny mono label + value ─────────────────────────────────────────────────
+function Stat({ label, value, unit, glow }: { label: string; value: string | number; unit: string; glow?: boolean }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span
+        className="font-mono uppercase tracking-[0.2em]"
+        style={{ fontSize: "7px", color: "rgba(0,210,190,0.6)" }}
+      >
+        {label}
+      </span>
+      <span
+        className="font-mono font-black leading-none"
+        style={{
+          fontSize: "18px",
+          color: glow ? "#00D2BE" : "#fff",
+          textShadow: glow ? "0 0 12px rgba(0,210,190,0.7)" : undefined,
+        }}
+      >
+        {value}
+        <span
+          className="font-mono font-normal"
+          style={{ fontSize: "8px", color: "rgba(0,210,190,0.8)", marginLeft: "2px" }}
+        >
+          {unit}
+        </span>
+      </span>
+    </div>
+  );
+}
+
+// ── Thin bar ────────────────────────────────────────────────────────────────
+function Bar({ value, max, color = "#00D2BE" }: { value: number; max: number; color?: string }) {
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "2px",
+        background: "rgba(255,255,255,0.06)",
+        borderRadius: "2px",
+        marginTop: "6px",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          height: "100%",
+          width: `${Math.min(100, (value / max) * 100)}%`,
+          background: color,
+          boxShadow: `0 0 6px ${color}`,
+          transition: "width 0.25s ease-out",
+        }}
+      />
+    </div>
+  );
+}
+
+const GLASS: React.CSSProperties = {
+  background: "rgba(6,6,8,0.65)",
+  backdropFilter: "blur(10px)",
+  border: "1px solid rgba(255,255,255,0.07)",
+  borderRadius: "10px",
+  padding: "10px 12px",
+};
 
 export default function F1Overlay() {
   const [speed, setSpeed] = useState(0);
-  const [rpm, setRpm] = useState(8000);
-  const [gear, setGear] = useState(1);
-  const [gForce, setGForce] = useState("0.0");
+  const [rpm,   setRpm]   = useState(8000);
+  const [gear,  setGear]  = useState(1);
+  const [gf,    setGf]    = useState("0.0");
+
+  // throttle scroll listener with rAF
+  const rafRef  = useRef<number | null>(null);
+  const lastRef = useRef(0);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const scrollY = window.scrollY;
-      const maxScroll = document.body.scrollHeight - window.innerHeight;
-      const progress = Math.max(0, Math.min(1, scrollY / maxScroll));
-
-      // Simulate telemetry based on scroll progress
-      setSpeed(Math.floor(progress * 340));
-      setRpm(Math.floor(8000 + progress * 7000));
-      setGear(Math.max(1, Math.ceil(progress * 8)));
-      setGForce((progress * 5.5).toFixed(1));
+    const onScroll = () => {
+      if (rafRef.current) return;
+      rafRef.current = requestAnimationFrame(() => {
+        const scrollY    = window.scrollY;
+        const maxScroll  = document.body.scrollHeight - window.innerHeight;
+        const p          = Math.max(0, Math.min(1, scrollY / maxScroll));
+        setSpeed(Math.floor(p * 340));
+        setRpm(Math.floor(8000 + p * 7000));
+        setGear(Math.max(1, Math.ceil(p * 8)));
+        setGf((p * 5.5).toFixed(1));
+        lastRef.current  = scrollY;
+        rafRef.current   = null;
+      });
     };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
   }, []);
 
   return (
-    <div className="absolute inset-0 pointer-events-none p-4 md:p-8 flex flex-col justify-between h-screen w-full">
-      {/* Top Bar - System Status */}
-      <div className="flex justify-between items-start font-mono text-[10px] md:text-xs text-[#00D2BE] opacity-80 uppercase tracking-widest mt-4">
-        <div className="space-y-1 bg-black/40 p-3 rounded-lg border border-[#00D2BE]/20 backdrop-blur-sm">
-          <p className="flex justify-between w-32">
-            <span>SYS. CHK.</span>
-            <span className="text-white">OK</span>
-          </p>
-          <p className="flex justify-between w-32">
-            <span>MGU-K</span>
-            <span className="text-white">ON</span>
-          </p>
-          <p className="flex justify-between w-32">
-            <span>MGU-H</span>
-            <span className="text-white">ON</span>
-          </p>
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        padding: "14px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+      }}
+    >
+
+      {/* ── TOP ROW — system checks left / mode flags right ─────────────── */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+
+        {/* Left: system statuses */}
+        <div style={{ ...GLASS }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+            {[
+              ["SYS", "OK"],
+              ["MGU‑K", "ON"],
+              ["MGU‑H", "ON"],
+            ].map(([k, v]) => (
+              <div
+                key={k}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "20px",
+                  fontFamily: "monospace",
+                  fontSize: "8px",
+                  letterSpacing: "0.15em",
+                  textTransform: "uppercase",
+                }}
+              >
+                <span style={{ color: "rgba(0,210,190,0.65)" }}>{k}</span>
+                <span style={{ color: v === "OK" || v === "ON" ? "#fff" : "rgba(255,255,255,0.35)" }}>{v}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="space-y-1 bg-black/40 p-3 rounded-lg border border-[#00D2BE]/20 backdrop-blur-sm text-right">
-          <p className="flex justify-between w-32 gap-4">
-            <span>DRS</span>
-            <span className="text-gray-500">DISABLED</span>
-          </p>
-          <p className="flex justify-between w-32 gap-4">
-            <span>ERS</span>
-            <span className="text-white">DEPLOY</span>
-          </p>
-          <p className="flex justify-between w-32 gap-4">
-            <span>B-BIAS</span>
-            <span className="text-white">56.5%</span>
-          </p>
+
+        {/* Right: DRS / ERS / B-Bias */}
+        <div style={{ ...GLASS }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "3px", textAlign: "right" }}>
+            {[
+              ["DRS", "DISABLED", false],
+              ["ERS", "DEPLOY",   true],
+              ["B-BIAS", "56.5%", true],
+            ].map(([k, v, hi]) => (
+              <div
+                key={k as string}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: "20px",
+                  fontFamily: "monospace",
+                  fontSize: "8px",
+                  letterSpacing: "0.15em",
+                  textTransform: "uppercase",
+                }}
+              >
+                <span style={{ color: "rgba(0,210,190,0.65)" }}>{k}</span>
+                <span style={{ color: hi ? "#fff" : "rgba(255,255,255,0.25)" }}>{v}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Crosshair (Subtle) */}
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full h-full flex justify-center items-center opacity-10">
-        <div className="w-px h-25 bg-white absolute"></div>
-        <div className="w-25 h-px bg-white absolute"></div>
-        <div className="w-32 h-32 border border-white rounded-full absolute"></div>
-      </div>
+      {/* ── BOTTOM ROW — speed left / gear centre / specs right ─────────── */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          gap: "8px",
+        }}
+      >
 
-      {/* Bottom Bar - Telemetry */}
-      <div className="flex flex-col md:flex-row justify-between items-center md:items-end gap-4 md:gap-0 pb-2">
-        {/* Left Stats */}
-        <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-3 md:p-5 font-mono w-full md:w-auto shadow-[0_4px_30px_rgba(0,0,0,0.5)] origin-bottom-left md:scale-90">
-          <div className="mb-2">
-            <span className="text-gray-400 text-[10px] md:text-xs block mb-1 uppercase tracking-widest">
-              Current Speed
-            </span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl md:text-5xl font-black text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">
-                {speed.toString().padStart(3, "0")}
-              </span>
-              <span className="text-[#00D2BE] text-sm font-bold">KM/H</span>
-            </div>
+        {/* Speed + sub-stats */}
+        <div style={{ ...GLASS, minWidth: "110px" }}>
+          <Stat label="Speed" value={String(speed).padStart(3, "0")} unit="km/h" />
+          <div style={{ display: "flex", gap: "16px", marginTop: "8px" }}>
+            <Stat label="RPM" value={rpm.toLocaleString()} unit="" />
+            <Stat label="G" value={gf} unit="g" />
           </div>
-          <div className="flex gap-6">
-            <div>
-              <span className="text-gray-400 text-[10px] block mb-1 uppercase tracking-widest">
-                Engine Speed
-              </span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-lg md:text-xl font-bold text-white">
-                  {rpm}
-                </span>
-                <span className="text-[#00D2BE] text-[10px]">RPM</span>
-              </div>
-            </div>
-            <div>
-              <span className="text-gray-400 text-[10px] block mb-1 uppercase tracking-widest">
-                G-Force
-              </span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-lg md:text-xl font-bold text-white">
-                  {gForce}
-                </span>
-                <span className="text-[#00D2BE] text-[10px]">G</span>
-              </div>
-            </div>
-          </div>
-          {/* RPM Bar */}
-          <div className="w-full h-2 bg-gray-900 rounded-full mt-3 overflow-hidden border border-gray-800">
-            <div
-              className="h-full bg-linear-to-r from-green-500 via-yellow-400 to-red-600 transition-all duration-300 ease-out"
-              style={{ width: `${(rpm / 15000) * 100}%` }}
-            ></div>
-          </div>
+          <Bar value={rpm} max={15000} color={rpm > 12000 ? "#ef4444" : rpm > 10000 ? "#eab308" : "#22c55e"} />
         </div>
 
-        {/* Center - Gear Indicator */}
-        <div className="flex flex-col items-center justify-end order-first md:order-0 mb-4 md:mb-0 md:-translate-y-4">
-          <span className="text-gray-400 text-[10px] md:text-xs uppercase tracking-widest mb-2 font-mono">
+        {/* Gear indicator */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            marginBottom: "4px",
+          }}
+        >
+          <span
+            style={{
+              fontFamily: "monospace",
+              fontSize: "7px",
+              letterSpacing: "0.25em",
+              textTransform: "uppercase",
+              color: "rgba(0,210,190,0.6)",
+              marginBottom: "4px",
+            }}
+          >
             Gear
           </span>
-          <div className="relative w-16 h-16 md:w-20 md:h-20">
-            <div className="absolute inset-0 border-2 border-[#00D2BE]/30 rounded-full animate-ping opacity-20"></div>
-            <div className="w-full h-full border-2 border-[#00D2BE] rounded-full flex items-center justify-center bg-black/70 backdrop-blur-md shadow-[0_0_20px_rgba(0,210,190,0.4)]">
-              <span className="text-3xl md:text-4xl font-black text-white font-mono drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]">
-                {gear}
-              </span>
-            </div>
+          <div
+            style={{
+              width: "42px",
+              height: "42px",
+              borderRadius: "50%",
+              border: "1px solid rgba(0,210,190,0.45)",
+              background: "rgba(6,6,8,0.75)",
+              backdropFilter: "blur(8px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 0 16px rgba(0,210,190,0.25)",
+            }}
+          >
+            <span
+              style={{
+                fontFamily: "monospace",
+                fontWeight: 900,
+                fontSize: "22px",
+                color: "#fff",
+              }}
+            >
+              {gear}
+            </span>
           </div>
         </div>
 
-        {/* Right Stats (Static Specs) */}
-        <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-3 md:p-5 font-mono text-right w-full md:w-auto shadow-[0_4px_30px_rgba(0,0,0,0.5)] origin-bottom-right md:scale-90">
-          <div className="mb-2">
-            <span className="text-gray-400 text-[10px] md:text-xs block mb-1 uppercase tracking-widest">
-              Max Power Output
-            </span>
-            <div className="flex items-baseline justify-end gap-2">
-              <span className="text-2xl md:text-4xl font-black text-white">
-                1000<span className="text-lg text-gray-500">+</span>
-              </span>
-              <span className="text-[#00D2BE] text-sm font-bold">HP</span>
-            </div>
+        {/* Max Power + specs */}
+        <div style={{ ...GLASS, minWidth: "110px", textAlign: "right" }}>
+          <Stat label="Max Power" value="1000+" unit="hp" glow />
+          <div style={{ display: "flex", gap: "16px", marginTop: "8px", justifyContent: "flex-end" }}>
+            <Stat label="0-100" value="2.6" unit="sec" />
+            <Stat label="Aero" value="High" unit="" />
           </div>
-          <div className="flex gap-6 justify-end">
-            <div className="text-right">
-              <span className="text-gray-400 text-[10px] block mb-1 uppercase tracking-widest">
-                Downforce
-              </span>
-              <div className="flex items-baseline justify-end gap-1">
-                <span className="text-lg md:text-xl font-bold text-white">
-                  High
-                </span>
-                <span className="text-[#00D2BE] text-[10px]">AERO</span>
-              </div>
-            </div>
-            <div className="text-right">
-              <span className="text-gray-400 text-[10px] block mb-1 uppercase tracking-widest">
-                0-100 km/h
-              </span>
-              <div className="flex items-baseline justify-end gap-1">
-                <span className="text-lg md:text-xl font-bold text-white">
-                  2.6
-                </span>
-                <span className="text-[#00D2BE] text-[10px]">SEC</span>
-              </div>
-            </div>
-          </div>
-          {/* Battery Deployment Bar */}
-          <div className="w-full h-2 bg-gray-900 rounded-full mt-3 overflow-hidden border border-gray-800 flex justify-end">
-            <div className="h-full bg-[#00D2BE] w-[85%] shadow-[0_0_10px_#00D2BE]"></div>
-          </div>
+          {/* ERS deployment bar */}
+          <Bar value={85} max={100} />
         </div>
+
       </div>
     </div>
   );

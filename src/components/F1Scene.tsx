@@ -1,394 +1,235 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import {
-  Environment,
-  ContactShadows,
-  PerspectiveCamera,
-  Sparkles,
-} from "@react-three/drei";
-import { Suspense, useRef } from "react";
+import { Environment, ContactShadows, PerspectiveCamera, Html, MeshReflectorMaterial, Lightformer } from "@react-three/drei";
+import { Suspense, useRef, useState } from "react";
 import * as THREE from "three";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import CarModel from "./CarModel";
 
-// Register ScrollTrigger only on the client side
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger);
+if (typeof window !== "undefined") gsap.registerPlugin(ScrollTrigger);
+
+const LABELS = [
+  { pos: [0,   -1,   5.2] as [number,number,number], title: "Front Wing",      sub: "35% Front Downforce",   color: "#00D2BE" },
+  { pos: [0,    3.2,-4.5] as [number,number,number], title: "Rear Wing",       sub: "High-Downforce Spec",   color: "#00D2BE" },
+  { pos: [-2.2, 1.5,-3.2] as [number,number,number], title: "V6 Turbo Hybrid", sub: "1000+ HP Power Unit",  color: "#E3001B" },
+  { pos: [4.5,  0.8, 0.5] as [number,number,number], title: "Zero-Pod",        sub: "Minimal Cooling Cell",  color: "#00D2BE" },
+  { pos: [0.5,  5.2, 0.5] as [number,number,number], title: "Halo",            sub: "Titanium Safety Arc",   color: "#C9A84C" },
+  { pos: [-3.5,-0.6, 2.2] as [number,number,number], title: "Floor & Diffuser",sub: "Ground Effect System",  color: "#00D2BE" },
+];
+
+function PartLabel({ title, sub, color, visible }: { title: string; sub: string; color: string; visible: boolean }) {
+  return (
+    <div style={{
+      opacity: visible ? 1 : 0,
+      transform: visible ? "translateY(0) scale(1)" : "translateY(8px) scale(0.92)",
+      transition: "opacity 0.4s ease, transform 0.4s ease",
+      pointerEvents: "none", userSelect: "none",
+      background: "rgba(7,8,14,0.85)", backdropFilter: "blur(10px)",
+      border: `1px solid ${color}40`, borderLeft: `3px solid ${color}`,
+      borderRadius: "6px", padding: "8px 12px", minWidth: "150px",
+      fontFamily: "system-ui, sans-serif",
+      boxShadow: `0 4px 20px rgba(0,0,0,0.5), 0 0 10px ${color}20`
+    }}>
+      <div style={{ fontSize: 10, fontFamily: "monospace", letterSpacing: "0.2em", textTransform: "uppercase", color, marginBottom: 4, fontWeight: "bold" }}>
+        ● {title}
+      </div>
+      <div style={{ fontSize: 11, color: "rgba(200,210,220,0.8)", lineHeight: 1.4 }}>{sub}</div>
+    </div>
+  );
 }
 
+interface MCache { mesh: THREE.Mesh; origPos: THREE.Vector3; dir: THREE.Vector3; }
+
 function SceneContent() {
-  const cameraRef = useRef<THREE.PerspectiveCamera>(null);
-  const carGroupRef = useRef<THREE.Group>(null);
-  const cameraTargetRef = useRef(new THREE.Vector3(0, 0.5, 0));
-  const sceneRef = useRef<THREE.Group>(null);
-  const engineGlowRef = useRef<THREE.Mesh>(null);
-  const engineLightRef = useRef<THREE.PointLight>(null);
+  const camRef    = useRef<THREE.PerspectiveCamera>(null);
+  const carRef    = useRef<THREE.Group>(null);
+  const lookRef   = useRef(new THREE.Vector3(0, 0.4, 0));
+  const floatRef  = useRef<THREE.Group>(null);
+  const explodeRef = useRef(0);
+  const prevLabel  = useRef(false);
+  const [labelsOn, setLabelsOn] = useState(false);
 
-  useGSAP(
-    () => {
-      if (!cameraRef.current || !carGroupRef.current) return;
+  useGSAP(() => {
+    if (!camRef.current || !carRef.current) return;
 
-      // Reset camera to initial position (Scene 1 - Hero Reveal)
-      cameraRef.current.position.set(6, 2, 6);
-      cameraTargetRef.current.set(0, 0.5, 0);
+    // Start with a heroic low-angle wide shot
+    camRef.current.position.set(6, 2.5, 6);
+    lookRef.current.set(0, 0.4, 0);
 
-      const animProps = {
-        opacity: 1,
-        explode: 0,
-      };
+    const animProps = { explode: 0 };
 
-      const updateMaterialsAndPositions = () => {
-        carGroupRef.current?.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            // Transparency
-            if (child.material) {
-              const mats = Array.isArray(child.material)
-                ? child.material
-                : [child.material];
-              mats.forEach((mat) => {
-                if (mat.userData.origTransparent === undefined) {
-                  mat.userData.origTransparent = mat.transparent;
-                  mat.userData.origOpacity = mat.opacity;
-                }
+    /* Cache meshes once */
+    const cache: MCache[] = [];
+    carRef.current.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return;
+      const wp = new THREE.Vector3();
+      child.getWorldPosition(wp);
+      const dir = wp.length() > 0.001 ? wp.clone().normalize() : new THREE.Vector3(0, 1, 0);
+      cache.push({ mesh: child, origPos: child.position.clone(), dir });
+    });
 
-                const targetOpacity =
-                  mat.userData.origOpacity * animProps.opacity;
-
-                if (animProps.opacity < 1 && !mat.transparent) {
-                  mat.transparent = true;
-                  mat.needsUpdate = true;
-                } else if (
-                  animProps.opacity === 1 &&
-                  mat.transparent &&
-                  !mat.userData.origTransparent
-                ) {
-                  mat.transparent = false;
-                  mat.needsUpdate = true;
-                }
-                mat.opacity = targetOpacity;
-              });
-            }
-
-            // Exploded view
-            if (!child.userData.originalPosition) {
-              child.userData.originalPosition = child.position.clone();
-              child.geometry.computeBoundingBox();
-              const center = new THREE.Vector3();
-              if (child.geometry.boundingBox) {
-                child.geometry.boundingBox.getCenter(center);
-              }
-              child.userData.explodeDir = center.normalize();
-            }
-
-            const dir = child.userData.explodeDir.clone();
-            child.position
-              .copy(child.userData.originalPosition)
-              .add(dir.multiplyScalar(animProps.explode * 1.5));
-          }
-        });
-      };
-
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: document.body,
-          start: "top top",
-          end: "bottom bottom",
-          scrub: 1.5, // Smoother scrubbing for cinematic feel
-        },
-      });
-
-      // Scene 2 - Front Wing Focus
-      tl.to(
-        cameraRef.current.position,
-        { x: 0, y: 0.5, z: 4.5, ease: "power2.inOut" },
-        0,
-      );
-      tl.to(
-        cameraTargetRef.current,
-        { x: 0, y: 0.2, z: 2, ease: "power2.inOut" },
-        0,
-      );
-      tl.to(
-        carGroupRef.current.rotation,
-        { y: Math.PI / 6, ease: "power2.inOut" },
-        0,
-      );
-
-      // Scene 3 - Sidepod Aerodynamics
-      tl.to(
-        cameraRef.current.position,
-        { x: 4.5, y: 0.8, z: 0, ease: "power2.inOut" },
-        1,
-      );
-      tl.to(
-        cameraTargetRef.current,
-        { x: 0, y: 0.5, z: 0, ease: "power2.inOut" },
-        1,
-      );
-      tl.to(
-        carGroupRef.current.rotation,
-        { y: -Math.PI / 12, ease: "power2.inOut" },
-        1,
-      );
-
-      // Scene 4 - Engine Reveal (Rear angled view)
-      tl.to(
-        cameraRef.current.position,
-        { x: -3.5, y: 2.5, z: -3, ease: "power2.inOut" },
-        2,
-      );
-      tl.to(
-        cameraTargetRef.current,
-        { x: 0, y: 0.8, z: -1, ease: "power2.inOut" },
-        2,
-      );
-      tl.to(
-        animProps,
-        {
-          opacity: 0.2,
-          ease: "power2.inOut",
-          onUpdate: updateMaterialsAndPositions,
-        },
-        2,
-      );
-      if (engineGlowRef.current) {
-        tl.to(
-          engineGlowRef.current.scale,
-          { x: 1, y: 1, z: 1, ease: "power2.inOut" },
-          2,
-        );
+    const updateExplode = () => {
+      const e = animProps.explode;
+      explodeRef.current = e;
+      for (const { mesh, origPos, dir } of cache) {
+        if (e > 0.001) {
+          mesh.position.set(
+            origPos.x + dir.x * e * 3.5,
+            origPos.y + dir.y * e * 3.5,
+            origPos.z + dir.z * e * 3.5,
+          );
+        } else {
+          mesh.position.copy(origPos);
+        }
       }
-      if (engineLightRef.current) {
-        tl.to(
-          engineLightRef.current,
-          { intensity: 5, ease: "power2.inOut" },
-          2,
-        );
-      }
+    };
 
-      // Scene 5 - Cockpit View (Zoomed in on halo/cockpit area)
-      tl.to(
-        cameraRef.current.position,
-        { x: 0, y: 1.8, z: 1, ease: "power2.inOut" },
-        3,
-      );
-      tl.to(
-        cameraTargetRef.current,
-        { x: 0, y: 1, z: -0.5, ease: "power2.inOut" },
-        3,
-      );
-      tl.to(carGroupRef.current.rotation, { y: 0, ease: "power2.inOut" }, 3);
-      tl.to(
-        animProps,
-        {
-          opacity: 1,
-          ease: "power2.inOut",
-          onUpdate: updateMaterialsAndPositions,
-        },
-        3,
-      );
-      if (engineGlowRef.current) {
-        tl.to(
-          engineGlowRef.current.scale,
-          { x: 0, y: 0, z: 0, ease: "power2.inOut" },
-          3,
-        );
-      }
-      if (engineLightRef.current) {
-        tl.to(
-          engineLightRef.current,
-          { intensity: 0, ease: "power2.inOut" },
-          3,
-        );
-      }
+    const cam  = camRef.current;
+    const car  = carRef.current;
+    const look = lookRef.current;
 
-      // Scene 6 - Deconstructed (Zoom out & full rotation to showcase engineering)
-      tl.to(
-        cameraRef.current.position,
-        { x: 6, y: 4, z: 6, ease: "power2.inOut" },
-        4,
-      );
-      tl.to(
-        cameraTargetRef.current,
-        { x: 0, y: 0.5, z: 0, ease: "power2.inOut" },
-        4,
-      );
-      tl.to(
-        carGroupRef.current.rotation,
-        { y: Math.PI * 1.5, ease: "power2.inOut" },
-        4,
-      );
-      tl.to(
-        animProps,
-        {
-          explode: 1,
-          ease: "power2.inOut",
-          onUpdate: updateMaterialsAndPositions,
-        },
-        4,
-      );
+    const tl = gsap.timeline({
+      scrollTrigger: { trigger: document.body, start: "top top", end: "bottom bottom", scrub: 1.2 },
+    });
 
-      // Scene 7 - Race Mode (Low rear angle mimicking a chase cam)
-      tl.to(
-        cameraRef.current.position,
-        { x: 0, y: 0.5, z: -6, ease: "power2.inOut" },
-        5,
-      );
-      tl.to(
-        cameraTargetRef.current,
-        { x: 0, y: 0.5, z: 5, ease: "power2.inOut" },
-        5,
-      );
-      tl.to(
-        carGroupRef.current.rotation,
-        { y: Math.PI * 2, ease: "power2.inOut" },
-        5,
-      );
-      tl.to(
-        animProps,
-        {
-          explode: 0,
-          ease: "power2.inOut",
-          onUpdate: updateMaterialsAndPositions,
-        },
-        5,
-      );
-    },
-    { dependencies: [] },
-  );
+    // Sc2 — Initial text appear (camera pulls in slightly)
+    tl.to(cam.position, { x: 5,   y: 1.8,  z: 5,   ease: "power2.inOut" }, 0)
+      .to(look,         { x: 0,   y: 0.4,  z: 0,   ease: "power2.inOut" }, 0)
+      .to(car.rotation, { y: Math.PI / 12, ease: "power2.inOut" }, 0);
+
+    // Sc3 — Front wing
+    tl.to(cam.position, { x: 0,   y: 0.4,  z: 4.2, ease: "power2.inOut" }, 1)
+      .to(look,         { x: 0,   y: 0.2,  z: 2,   ease: "power2.inOut" }, 1)
+      .to(car.rotation, { y: Math.PI / 6,  ease: "power2.inOut" }, 1);
+
+    // Sc4 — Sidepod
+    tl.to(cam.position, { x: 4.2, y: 0.7,  z: 0,   ease: "power2.inOut" }, 2)
+      .to(look,         { x: 0,   y: 0.4,  z: 0,   ease: "power2.inOut" }, 2)
+      .to(car.rotation, { y: -Math.PI / 10, ease: "power2.inOut" }, 2);
+
+    // Sc5 — Engine rear
+    tl.to(cam.position, { x: -3.2,y: 2.2, z: -2.8, ease: "power2.inOut" }, 3)
+      .to(look,         { x:  0,  y: 0.7, z: -0.8, ease: "power2.inOut" }, 3)
+      .to(car.rotation, { y: -Math.PI / 4, ease: "power2.inOut" }, 3);
+
+    // Sc6 — Cockpit
+    tl.to(cam.position, { x: 0,   y: 1.6,  z: 0.9,  ease: "power2.inOut" }, 4)
+      .to(look,         { x: 0,   y: 1.0,  z: -0.4, ease: "power2.inOut" }, 4)
+      .to(car.rotation, { y: 0,            ease: "power2.inOut" }, 4);
+
+    // Sc7 — Exploded
+    tl.to(cam.position, { x: 7,  y: 5.5, z: 7,  ease: "power2.inOut" }, 5)
+      .to(look,         { x: 0,  y: 1,   z: 0,  ease: "power2.inOut" }, 5)
+      .to(car.rotation, { y: Math.PI * 1.5, ease: "power2.inOut" }, 5)
+      .to(animProps,    { explode: 1, ease: "power2.inOut", onUpdate: updateExplode }, 5);
+
+    // Sc8 — Race mode
+    tl.to(cam.position, { x: 0, y: 0.5, z: -6.5, ease: "power2.inOut" }, 6)
+      .to(look,         { x: 0, y: 0.5,  z: 5,   ease: "power2.inOut" }, 6)
+      .to(car.rotation, { y: Math.PI * 2, ease: "power2.inOut" }, 6)
+      .to(animProps,    { explode: 0, ease: "power2.inOut", onUpdate: updateExplode }, 6);
+  }, { dependencies: [] });
 
   useFrame((state) => {
-    // Ensure the camera is always looking at our dynamic target
-    if (cameraRef.current) {
-      cameraRef.current.lookAt(cameraTargetRef.current);
-    }
+    camRef.current?.lookAt(lookRef.current);
 
-    // Idle rotation in Scene 1 (when scroll is at the very top)
-    if (carGroupRef.current && window.scrollY < 20) {
-      carGroupRef.current.rotation.y += 0.002;
-    }
+    if (carRef.current && window.scrollY < 20)
+      carRef.current.rotation.y += 0.001;
 
-    // Add slight floating effect to the entire scene for a premium feel
-    if (sceneRef.current) {
-      sceneRef.current.position.y = Math.sin(state.clock.elapsedTime) * 0.02;
-    }
+    if (floatRef.current)
+      floatRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.55) * 0.025;
+
+    const on = explodeRef.current > 0.42;
+    if (on !== prevLabel.current) { prevLabel.current = on; setLabelsOn(on); }
   });
 
   return (
     <>
-      <PerspectiveCamera
-        ref={cameraRef}
-        makeDefault
-        position={[6, 2, 6]}
-        fov={45}
-      />
+      <PerspectiveCamera ref={camRef} makeDefault position={[6, 2.5, 6]} fov={40} />
 
-      {/* Lighting setup inspired by Mercedes AMG Petronas (Neon Blue / Dark) */}
-      <ambientLight intensity={1.5} color="#ffffff" />
-      <directionalLight position={[5, 10, 5]} intensity={3} color="#ffffff" />
-      <directionalLight
-        position={[-5, 5, -5]}
-        intensity={1.5}
-        color="#ffffff"
-      />
+      {/* ── Hyper-realistic Studio Lighting ─────────────────────────────── */}
+      {/* Base ambient to ensure absolute visibility of black carbon fiber */}
+      <ambientLight intensity={4} color="#ffffff" />
+      
+      {/* Key light for heavy detail on carbon textures */}
+      <directionalLight position={[5, 10, 5]} intensity={8} color="#ffffff" castShadow />
+      <directionalLight position={[-5, 5, 8]} intensity={6} color="#e0f0ff" />
+      <directionalLight position={[0, -2, -8]} intensity={5} color="#00D2BE" />
+      
+      {/* Sharp rim lighting from behind/sides for edge highlights */}
+      <spotLight position={[-8, 4, -8]} intensity={45} color="#00D2BE" angle={0.6} penumbra={1} distance={30} />
+      <spotLight position={[ 8, 4, -8]} intensity={45} color="#00D2BE" angle={0.6} penumbra={1} distance={30} />
+      
+      {/* Top down fill to hit the upper chassis and halo */}
+      <spotLight position={[ 0, 12, 0]} intensity={30} color="#ffffff" angle={0.6} penumbra={0.5} distance={20} />
 
-      {/* Neon Blue Rim Lights */}
-      <spotLight
-        position={[-10, 5, -10]}
-        intensity={40}
-        color="#00D2BE"
-        angle={0.8}
-        penumbra={1}
-        distance={30}
-      />
-      <spotLight
-        position={[10, 5, -10]}
-        intensity={30}
-        color="#00D2BE"
-        angle={0.8}
-        penumbra={1}
-        distance={30}
-      />
-      <spotLight
-        position={[0, 10, 10]}
-        intensity={20}
-        color="#00D2BE"
-        angle={0.6}
-        penumbra={0.8}
-        distance={30}
-      />
-      <pointLight
-        position={[0, 2, 0]}
-        intensity={2}
-        color="#00D2BE"
-        distance={10}
-      />
+      {/* HDRI Environment for maximum glossy reflections on the car's metallic surfaces 
+          (Not set to background, so the stage remains a clean matte dark void) */}
+      <Environment preset="city" />
 
-      {/* HDRI reflections */}
-      <Environment preset="city" environmentIntensity={0.5} />
+      {/* ── High-Tech Stage ─────────────────────────────────── */}
+      <group>
+        {/* Subtle, matte black stage floor so the contact shadow has a perfect canvas 
+            without turning into a glitchy shifting mirror */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.4, 0]}>
+          <planeGeometry args={[150, 150]} />
+          <meshStandardMaterial color="#050505" roughness={0.9} metalness={0.1} />
+        </mesh>
+      </group>
 
-      <group ref={sceneRef}>
-        <group ref={carGroupRef}>
-          {/* 3D Car Model */}
-          <CarModel scale={1} position={[0, -0.4, 0]} />
+      <group ref={floatRef}>
+        <group ref={carRef}>
+          <CarModel scale={1} position={[0, -0.38, 0]} />
 
-          {/* Engine Glow Core */}
-          <mesh ref={engineGlowRef} position={[0, 0.4, -1.2]} scale={0}>
-            <sphereGeometry args={[0.3, 16, 16]} />
-            <meshBasicMaterial
-              color="#00D2BE"
-              transparent
-              opacity={0.6}
-              wireframe
-            />
-            <pointLight
-              ref={engineLightRef}
-              color="#00D2BE"
-              intensity={0}
-              distance={5}
-            />
-          </mesh>
+          {/* Part labels */}
+          {LABELS.map((l, i) => (
+            <Html key={i} position={l.pos} center distanceFactor={10}>
+              <PartLabel title={l.title} sub={l.sub} color={l.color} visible={labelsOn} />
+            </Html>
+          ))}
         </group>
 
-        {/* Floor Shadow */}
+        {/* Subtle contact shadow */}
         <ContactShadows
-          position={[0, -0.4, 0]}
+          position={[0, -0.38, 0]}
           opacity={0.8}
-          scale={15}
-          blur={2.5}
-          far={4}
+          scale={14}
+          blur={1.5}
+          far={3}
           color="#000000"
-        />
-
-        {/* Speed particles, giving life to the scene (especially Race Mode) */}
-        <Sparkles
-          count={200}
-          scale={20}
-          size={4}
-          speed={0.8}
-          opacity={0.15}
-          color="#00D2BE"
+          frames={1}
         />
       </group>
     </>
   );
 }
 
+import { Sparkles, Grid } from "@react-three/drei";
+
 export default function F1Scene() {
   return (
     <Canvas
-      className="w-full h-full pointer-events-none"
-      dpr={[1, 2]}
-      gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
+      className="w-full h-full"
+      dpr={[1, 2]} /* Enforce 4K retina display rendering */
+      gl={{
+        antialias: true,
+        toneMapping: THREE.ACESFilmicToneMapping,
+        toneMappingExposure: 1.2,
+        powerPreference: "high-performance",
+        alpha: false,
+      }}
+      performance={{ min: 0.5 }}
     >
       <color attach="background" args={["#050505"]} />
-      {/* Fog for cinematic depth blending into the dark background */}
-      <fog attach="fog" args={["#050505", 5, 20]} />
+      <fog attach="fog" args={["#050505", 10, 40]} />
+      
       <Suspense fallback={null}>
         <SceneContent />
+        <Sparkles count={400} scale={30} size={1.5} speed={0.4} opacity={0.2} color="#00D2BE" />
+        <Sparkles count={200} scale={20} size={2.5} speed={0.2} opacity={0.1} color="#ffffff" />
       </Suspense>
     </Canvas>
   );
