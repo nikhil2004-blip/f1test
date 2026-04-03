@@ -320,6 +320,8 @@ function LoadingScreen({ onComplete }: { onComplete: () => void }) {
 
   useEffect(() => {
     let raf: number;
+    let lastBeepTime = 0;
+
     const tick = () => {
       if (completeRef.current) return;
       const elapsed = Date.now() - startRef.current;
@@ -328,10 +330,9 @@ function LoadingScreen({ onComplete }: { onComplete: () => void }) {
 
       let realProgress = Math.floor(eased * 100);
       
-      // If Drei is still actively loading the 3D model, cap progress to 99%
-      // Initial progress=0 and active=false might happen before canvas spins up
-      // so we use a fallback heuristic: if we are at 99% and process hasn't finished, hold it there.
-      const isActuallyLoading = active || progress < 100;
+      // Black Screen Fix: Check if F1Scene has fully mounted Suspense
+      const isSceneMounted = (window as any).__F1_SCENE_MOUNTED === true;
+      const isActuallyLoading = !isSceneMounted || active || progress < 100;
       
       if (isActuallyLoading && realProgress >= 99) {
         realProgress = 99;
@@ -340,10 +341,16 @@ function LoadingScreen({ onComplete }: { onComplete: () => void }) {
       setPct(realProgress);
       setTxt(LOAD_TEXTS[Math.min(LOAD_TEXTS.length - 1, Math.floor(eased * (LOAD_TEXTS.length - 1)))]);
       
+      if (elapsed - lastBeepTime > 800 && elapsed < DURATION) {
+        playLoadingBeep(880);
+        lastBeepTime = elapsed;
+      }
+
       if (timeP >= 1 && !isActuallyLoading && progress === 100) {
         completeRef.current = true;
         setPct(100);
         setTxt("SYSTEMS OPTIMAL");
+        playLoadingBeep(1760); // High pitch for success
         setTimeout(onComplete, 500);
       } else {
         raf = requestAnimationFrame(tick);
@@ -553,15 +560,44 @@ function Experience() {
 }
 
 /* ── Electrifying F1 Engine Synth ────────────────────────────────────────── */
-const playStartSound = () => {
+// Global AudioContext so we can use it across components
+let globalAudioCtx: AudioContext | null = null;
+
+const initAudio = () => {
+    if (!globalAudioCtx) {
+        const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+        if (!Ctx) return;
+        globalAudioCtx = new Ctx();
+    }
+    if (globalAudioCtx.state === 'suspended') globalAudioCtx.resume();
+};
+
+const playLoadingBeep = (freq: number) => {
+    if (!globalAudioCtx) return;
+    try {
+        const t = globalAudioCtx.currentTime;
+        const osc = globalAudioCtx.createOscillator();
+        const gain = globalAudioCtx.createGain();
+        osc.frequency.setValueAtTime(freq, t);
+        osc.type = "sine";
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.05, t + 0.02);
+        gain.gain.linearRampToValueAtTime(0, t + 0.1);
+        osc.connect(gain);
+        gain.connect(globalAudioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.15);
+    } catch(e) {}
+};
+
+const playEngineBoom = () => {
   try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
+    if (!globalAudioCtx) return;
+    const ctx = globalAudioCtx;
     if (ctx.state === 'suspended') ctx.resume();
     const t = ctx.currentTime;
     const broom = t + 0.1; 
-    const end = broom + 4.4; // Covers the 4.2s loading screen perfectly
+    const end = broom + 3.0; // Slightly shorter max brooom 
 
     // Distortion Curve for maximum bite
     const distortion = ctx.createWaveShaper();
@@ -633,10 +669,13 @@ const playStartSound = () => {
 export default function Home() {
   const [stage, setStage] = useState<Stage>("landing");
   const handleStart = useCallback(() => {
-    playStartSound();
+    initAudio(); // Wait for user interaction
     setStage("loading");
   }, []);
-  const handleLoaded = useCallback(() => setStage("experience"), []);
+  const handleLoaded = useCallback(() => {
+    playEngineBoom(); // Heavy Broom
+    setStage("experience");
+  }, []);
 
   return (
     <>

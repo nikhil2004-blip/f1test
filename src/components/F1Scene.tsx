@@ -2,7 +2,7 @@
 //final code
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment, ContactShadows, PerspectiveCamera, Html, MeshReflectorMaterial, Lightformer } from "@react-three/drei";
-import { Suspense, useRef, useState, useMemo } from "react";
+import { Suspense, useRef, useState, useMemo, useEffect } from "react";
 import * as THREE from "three";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -109,6 +109,10 @@ function SceneContent() {
   const explodeRef = useRef(0);
   const prevLabel = useRef(false);
   const [labelsOn, setLabelsOn] = useState(false);
+
+  useEffect(() => {
+    (window as any).__F1_SCENE_MOUNTED = true;
+  }, []);
 
   useGSAP(() => {
     if (!camRef.current || !carRef.current) return;
