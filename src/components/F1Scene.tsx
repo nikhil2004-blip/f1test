@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Environment, ContactShadows, PerspectiveCamera, Html, MeshReflectorMaterial, Lightformer } from "@react-three/drei";
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useRef, useState, useMemo } from "react";
 import * as THREE from "three";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -42,6 +42,64 @@ function PartLabel({ title, sub, color, visible }: { title: string; sub: string;
 }
 
 interface MCache { mesh: THREE.Mesh; origPos: THREE.Vector3; dir: THREE.Vector3; }
+
+/* ── Web Audio Synth for F1 V6 Turbo Engine ───────────────────────────────── */
+let lastEnginePlay = 0;
+const playEngineSound = () => {
+  const now = Date.now();
+  if (now - lastEnginePlay < 4000) return; // 4 second cooldown
+  lastEnginePlay = now;
+
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+
+    // V6 Combustion Rumble
+    const engine = ctx.createOscillator();
+    engine.type = "sawtooth";
+
+    // MGU-H Turbo Whine
+    const turbo = ctx.createOscillator();
+    turbo.type = "sine";
+
+    const engineGain = ctx.createGain();
+    const turboGain = ctx.createGain();
+
+    engine.connect(engineGain);
+    turbo.connect(turboGain);
+    engineGain.connect(ctx.destination);
+    turboGain.connect(ctx.destination);
+
+    const t = ctx.currentTime;
+
+    // RPM Pitch Envelope (Start at idle, aggressively ramp to redline)
+    engine.frequency.setValueAtTime(140, t);
+    engine.frequency.exponentialRampToValueAtTime(750, t + 2.5);
+
+    turbo.frequency.setValueAtTime(1000, t);
+    turbo.frequency.exponentialRampToValueAtTime(8500, t + 2.5);
+
+    // Volume Envelope
+    engineGain.gain.setValueAtTime(0, t);
+    engineGain.gain.linearRampToValueAtTime(0.2, t + 0.2); // Initial punch
+    engineGain.gain.linearRampToValueAtTime(0.2, t + 2.5);
+    engineGain.gain.linearRampToValueAtTime(0, t + 3.5); // Fade out
+
+    turboGain.gain.setValueAtTime(0, t);
+    turboGain.gain.linearRampToValueAtTime(0.0, t + 0.5); // Turbo lag
+    turboGain.gain.linearRampToValueAtTime(0.08, t + 1.5); // Turbo spooling up
+    turboGain.gain.linearRampToValueAtTime(0, t + 3.5);
+
+    engine.start(t);
+    turbo.start(t);
+    engine.stop(t + 4);
+    turbo.stop(t + 4);
+  } catch (e) {
+    console.warn("Audio blocked by browser policies.");
+  }
+};
 
 function SceneContent() {
   const camRef    = useRef<THREE.PerspectiveCamera>(null);
@@ -96,50 +154,61 @@ function SceneContent() {
     });
 
     // Sc2 — Initial text appear (camera pulls in slightly)
-    tl.to(cam.position, { x: 5,   y: 1.8,  z: 5,   ease: "power2.inOut" }, 0)
+    tl.to(cam.position, { x: 6.5, y: 2.2,  z: 6.5,   ease: "power2.inOut" }, 0)
       .to(look,         { x: 0,   y: 0.4,  z: 0,   ease: "power2.inOut" }, 0)
       .to(car.rotation, { y: Math.PI / 12, ease: "power2.inOut" }, 0);
 
     // Sc3 — Front wing
-    tl.to(cam.position, { x: 0,   y: 0.4,  z: 4.2, ease: "power2.inOut" }, 1)
+    tl.to(cam.position, { x: 0,   y: 0.6,  z: 5.8, ease: "power2.inOut" }, 1)
       .to(look,         { x: 0,   y: 0.2,  z: 2,   ease: "power2.inOut" }, 1)
       .to(car.rotation, { y: Math.PI / 6,  ease: "power2.inOut" }, 1);
 
     // Sc4 — Sidepod
-    tl.to(cam.position, { x: 4.2, y: 0.7,  z: 0,   ease: "power2.inOut" }, 2)
+    tl.to(cam.position, { x: 5.8, y: 1.0,  z: 0,   ease: "power2.inOut" }, 2)
       .to(look,         { x: 0,   y: 0.4,  z: 0,   ease: "power2.inOut" }, 2)
       .to(car.rotation, { y: -Math.PI / 10, ease: "power2.inOut" }, 2);
 
     // Sc5 — Engine rear
-    tl.to(cam.position, { x: -3.2,y: 2.2, z: -2.8, ease: "power2.inOut" }, 3)
+    tl.to(cam.position, { x: -4.5,y: 3.0, z: -3.9, ease: "power2.inOut" }, 3)
       .to(look,         { x:  0,  y: 0.7, z: -0.8, ease: "power2.inOut" }, 3)
       .to(car.rotation, { y: -Math.PI / 4, ease: "power2.inOut" }, 3);
 
     // Sc6 — Cockpit
-    tl.to(cam.position, { x: 0,   y: 1.6,  z: 0.9,  ease: "power2.inOut" }, 4)
+    tl.to(cam.position, { x: 0,   y: 2.2,  z: 1.2,  ease: "power2.inOut" }, 4)
       .to(look,         { x: 0,   y: 1.0,  z: -0.4, ease: "power2.inOut" }, 4)
       .to(car.rotation, { y: 0,            ease: "power2.inOut" }, 4);
 
     // Sc7 — Exploded
-    tl.to(cam.position, { x: 7,  y: 5.5, z: 7,  ease: "power2.inOut" }, 5)
+    tl.to(cam.position, { x: 9.8, y: 7.7, z: 9.8,  ease: "power2.inOut" }, 5)
       .to(look,         { x: 0,  y: 1,   z: 0,  ease: "power2.inOut" }, 5)
       .to(car.rotation, { y: Math.PI * 1.5, ease: "power2.inOut" }, 5)
       .to(animProps,    { explode: 1, ease: "power2.inOut", onUpdate: updateExplode }, 5);
 
-    // Sc8 — Race mode
-    tl.to(cam.position, { x: 0, y: 0.5, z: -6.5, ease: "power2.inOut" }, 6)
-      .to(look,         { x: 0, y: 0.5,  z: 5,   ease: "power2.inOut" }, 6)
+    let lastP = 0;
+    // Sc8 — Race mode (and trigger aggressive engine sound)
+    tl.to(cam.position, { x: 0, y: 1.0, z: -7.0, ease: "power2.inOut" }, 6)
+      .to(look,         { x: 0, y: 0.5,  z: 3,   ease: "power2.inOut" }, 6)
       .to(car.rotation, { y: Math.PI * 2, ease: "power2.inOut" }, 6)
-      .to(animProps,    { explode: 0, ease: "power2.inOut", onUpdate: updateExplode }, 6);
+      .to(animProps,    { 
+        explode: 0, 
+        ease: "power2.inOut", 
+        onUpdate: function() {
+          updateExplode();
+          const p = this.progress();
+          // Trigger audio only when scrolling DOWN deeply into the final section
+          if (p > 0.8 && p > lastP) playEngineSound();
+          lastP = p;
+        } 
+      }, 6);
   }, { dependencies: [] });
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     camRef.current?.lookAt(lookRef.current);
 
     if (carRef.current && window.scrollY < 20)
       carRef.current.rotation.y += 0.001;
 
-    if (floatRef.current)
+    if (floatRef.current && floatRef.current.position.z < 0.1)
       floatRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.55) * 0.025;
 
     const on = explodeRef.current > 0.42;
@@ -176,11 +245,13 @@ function SceneContent() {
             without turning into a glitchy shifting mirror */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.4, 0]}>
           <planeGeometry args={[150, 150]} />
-          <meshStandardMaterial color="#050505" roughness={0.9} metalness={0.1} />
+          {/* meshBasicMaterial completely ignores lighting, guaranteeing the floor
+              NEVER changes color, turns grey, or washes out under the intense spotlights! */}
+          <meshBasicMaterial color="#050505" />
         </mesh>
       </group>
 
-      <group ref={floatRef}>
+      <group ref={floatRef} scale={1.4}>
         <group ref={carRef}>
           <CarModel scale={1} position={[0, -0.38, 0]} />
 
@@ -228,8 +299,8 @@ export default function F1Scene() {
       
       <Suspense fallback={null}>
         <SceneContent />
-        <Sparkles count={400} scale={30} size={1.5} speed={0.4} opacity={0.2} color="#00D2BE" />
-        <Sparkles count={200} scale={20} size={2.5} speed={0.2} opacity={0.1} color="#ffffff" />
+        <Sparkles count={600} scale={35} size={1.8} speed={0.5} opacity={0.55} color="#00D2BE" />
+        <Sparkles count={200} scale={25} size={3.0} speed={0.3} opacity={0.3} color="#ffffff" />
       </Suspense>
     </Canvas>
   );

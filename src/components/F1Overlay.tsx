@@ -7,23 +7,23 @@ function Stat({ label, value, unit, glow }: { label: string; value: string | num
   return (
     <div className="flex flex-col gap-0.5">
       <span
-        className="font-mono uppercase tracking-[0.2em]"
-        style={{ fontSize: "7px", color: "rgba(0,210,190,0.6)" }}
+        style={{ fontFamily: "var(--font-mono)", fontSize: "7px", color: "rgba(0,210,190,0.6)",
+          textTransform: "uppercase", letterSpacing: "0.2em" }}
       >
         {label}
       </span>
       <span
-        className="font-mono font-black leading-none"
         style={{
-          fontSize: "18px",
+          fontFamily: "var(--font-display)",
+          fontSize: "18px", fontWeight: 900, lineHeight: 1,
           color: glow ? "#00D2BE" : "#fff",
           textShadow: glow ? "0 0 12px rgba(0,210,190,0.7)" : undefined,
         }}
       >
         {value}
         <span
-          className="font-mono font-normal"
-          style={{ fontSize: "8px", color: "rgba(0,210,190,0.8)", marginLeft: "2px" }}
+          style={{ fontFamily: "var(--font-mono)", fontWeight: 400,
+            fontSize: "8px", color: "rgba(0,210,190,0.8)", marginLeft: "2px" }}
         >
           {unit}
         </span>

@@ -1,8 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #07080E;
-  --foreground: #F2F4F8;
+  --background: #020408;
+  --foreground: #e8f0f4;
+
+  /* ── Font stacks ── */
+  --font-display:  var(--font-display,  'Orbitron',       'Impact', sans-serif);
+  --font-mono:     var(--font-mono,     'Share Tech Mono','Courier New', monospace);
+  --font-body:     var(--font-body,     'Rajdhani',       system-ui, sans-serif);
+
+  /* ── Brand tokens ── */
+  --cyan:    #00D2BE;
+  --cyan-dim: rgba(0, 210, 190, 0.55);
+  --cyan-faint: rgba(0, 210, 190, 0.12);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -10,10 +20,18 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, -apple-system, sans-serif;
+  /* Rajdhani for all body text */
+  font-family: var(--font-body);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* Utility classes for font switching */
+.f-display { font-family: var(--font-display); }
+.f-mono    { font-family: var(--font-mono); }
+.f-body    { font-family: var(--font-body); }
+
+/* ── Animations ────────────────────────────────────────────────────────── */
 @keyframes appear {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -43,6 +61,11 @@ body {
 @keyframes labelIn {
   from { opacity: 0; transform: translateY(6px) scale(0.95); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(0,210,190,0.3); }
+  50%       { box-shadow: 0 0 20px rgba(0,210,190,0.7); }
 }
 
 /* Smooth entry/exit for experience */
