@@ -12,6 +12,9 @@ import React from 'react'
 import { useGLTF } from '@react-three/drei'
 import { GLTF } from 'three-stdlib'
 
+// Vercel Blob CDN - 20MB model served from Vercel's global edge network
+const MODEL_URL = 'https://kgzrhnhwzegfkqpq.public.blob.vercel-storage.com/f1_2023_mercedes_amg_w14_e_performance_s1.glb'
+
 type GLTFResult = GLTF & {
   nodes: {
     Object_4: THREE.Mesh
@@ -266,7 +269,7 @@ type GLTFResult = GLTF & {
 }
 
 export default function CarModel(props: React.ComponentProps<"group">) {
-  const { nodes, materials } = useGLTF('/assets/models/f1_2023_mercedes_amg_w14_e_performance_s1.glb') as unknown as GLTFResult
+  const { nodes, materials } = useGLTF(MODEL_URL) as unknown as GLTFResult
   return (
     <group {...props} dispose={null}>
       <group position={[0.805, 0.366, 1.801]} rotation={[Math.PI / 2, 0.035, 0]}>
@@ -533,4 +536,4 @@ export default function CarModel(props: React.ComponentProps<"group">) {
   )
 }
 
-useGLTF.preload('/assets/models/f1_2023_mercedes_amg_w14_e_performance_s1.glb')
+useGLTF.preload(MODEL_URL)
