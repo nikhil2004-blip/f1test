@@ -317,6 +317,7 @@ function LoadingScreen({ onComplete }: { onComplete: () => void }) {
   
   const startRef = useRef(Date.now());
   const completeRef = useRef(false);
+  const displayProgressRef = useRef(0);
 
   useEffect(() => {
     let raf: number;
@@ -325,28 +326,33 @@ function LoadingScreen({ onComplete }: { onComplete: () => void }) {
     const tick = () => {
       if (completeRef.current) return;
       const elapsed = Date.now() - startRef.current;
-      const timeP = Math.min(1, Math.max(0, elapsed / DURATION));
-      const eased = 1 - Math.pow(1 - timeP, 4);
-
-      let realProgress = Math.floor(eased * 100);
+      
+      // Interpolate display progress towards actual Drei progress for smooth visuals
+      displayProgressRef.current += (progress - displayProgressRef.current) * 0.15;
       
       // Black Screen Fix: Check if F1Scene has fully mounted Suspense
       const isSceneMounted = (window as any).__F1_SCENE_MOUNTED === true;
       const isActuallyLoading = !isSceneMounted || active || progress < 100;
+
+      let currentDisplay = Math.floor(displayProgressRef.current);
       
-      if (isActuallyLoading && realProgress >= 99) {
-        realProgress = 99;
+      if (isActuallyLoading && currentDisplay >= 99) {
+        currentDisplay = 99; // Cap at 99 until mount and load are truly complete
       }
       
-      setPct(realProgress);
-      setTxt(LOAD_TEXTS[Math.min(LOAD_TEXTS.length - 1, Math.floor(eased * (LOAD_TEXTS.length - 1)))]);
+      setPct(currentDisplay);
       
-      if (elapsed - lastBeepTime > 800 && elapsed < DURATION) {
+      const txtIndex = Math.min(LOAD_TEXTS.length - 1, Math.floor((currentDisplay / 100) * LOAD_TEXTS.length));
+      setTxt(LOAD_TEXTS[txtIndex]);
+      
+      // Telemetry beeps while loading
+      if (elapsed - lastBeepTime > 800) {
         playLoadingBeep(880);
         lastBeepTime = elapsed;
       }
 
-      if (timeP >= 1 && !isActuallyLoading && progress === 100) {
+      // Check for completion!
+      if (!isActuallyLoading && Math.abs(progress - 100) < 0.1 && currentDisplay >= 99) {
         completeRef.current = true;
         setPct(100);
         setTxt("SYSTEMS OPTIMAL");
@@ -590,80 +596,7 @@ const playLoadingBeep = (freq: number) => {
     } catch(e) {}
 };
 
-const playEngineBoom = () => {
-  try {
-    if (!globalAudioCtx) return;
-    const ctx = globalAudioCtx;
-    if (ctx.state === 'suspended') ctx.resume();
-    const t = ctx.currentTime;
-    const broom = t + 0.1; 
-    const end = broom + 3.0; // Slightly shorter max brooom 
-
-    // Distortion Curve for maximum bite
-    const distortion = ctx.createWaveShaper();
-    const makeDistortionCurve = (amount: number) => {
-      const n_samples = 44100;
-      const curve = new Float32Array(n_samples);
-      for (let i = 0; i < n_samples; ++i) {
-        const x = i * 2 / n_samples - 1;
-        curve[i] = (3 + amount) * x * 20 * (Math.PI / 180) / (Math.PI + amount * Math.abs(x));
-      }
-      return curve;
-    };
-    distortion.curve = makeDistortionCurve(500);
-
-    // Dynamic engine layering function
-    const createV6Layer = (freq: number, type: OscillatorType, detune: number, startTime: number, stopTime: number, vol: number, spike = 2.5) => {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      const f = ctx.createBiquadFilter();
-
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, startTime);
-      osc.frequency.exponentialRampToValueAtTime(freq * spike, startTime + 0.15); // Powerful bite
-      osc.frequency.exponentialRampToValueAtTime(freq * 1.1, stopTime); // Sustained idle
-      osc.detune.setValueAtTime(detune, startTime);
-
-      f.type = "bandpass";
-      f.frequency.setValueAtTime(freq * 3, startTime);
-      f.frequency.exponentialRampToValueAtTime(freq * 8, startTime + 0.3);
-      f.Q.setValueAtTime(4, startTime);
-
-      g.gain.setValueAtTime(0, startTime);
-      g.gain.linearRampToValueAtTime(vol, startTime + 0.04);
-      g.gain.linearRampToValueAtTime(vol, stopTime - 0.5); // HOLD volume securely
-      g.gain.exponentialRampToValueAtTime(0.001, stopTime); // Noticeable 0.5s fade
-
-      osc.connect(f); f.connect(distortion); distortion.connect(g); g.connect(ctx.destination);
-      osc.start(startTime); osc.stop(stopTime);
-    };
-
-    // THE BROOOOOOM (Sustained & Loud)
-    createV6Layer(58, "sawtooth", 10, broom, end, 0.65, 2.5);   // Sub thunder
-    createV6Layer(116, "sawtooth", -15, broom, end, 0.55, 2.5); // Mid buzz
-    createV6Layer(116, "square", 20, broom + 0.01, end, 0.4, 2.5); // Electric aggression
-    createV6Layer(232, "sawtooth", 30, broom + 0.03, end, 0.2, 2.5); // High scream
-
-    // Ignition Crackles
-    for(let i = 0; i < 20; i++) {
-      const pt = broom + Math.random() * 0.8;
-      const pop = ctx.createOscillator();
-      const pg = ctx.createGain();
-      pop.type = "sawtooth";
-      pop.frequency.setValueAtTime(Math.random() * 120 + 40, pt);
-      pg.gain.setValueAtTime(0.8, pt);
-      pg.gain.exponentialRampToValueAtTime(0.01, pt + 0.06);
-      pop.connect(pg); pg.connect(ctx.destination);
-      pop.start(pt); pop.stop(pt + 0.06);
-    }
-
-
-
-  } catch (e) {
-    console.warn("Audio blocked");
-  }
-};
-
+// Engine boom audio completely removed as requested.
 
 /* ── Root ───────────────────────────────────────────────────────────────── */
 export default function Home() {
@@ -673,7 +606,6 @@ export default function Home() {
     setStage("loading");
   }, []);
   const handleLoaded = useCallback(() => {
-    playEngineBoom(); // Heavy Broom
     setStage("experience");
   }, []);
 
