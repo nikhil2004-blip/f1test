@@ -434,71 +434,13 @@ function Experience() {
 
       <div style={{ position: "relative", zIndex: 10, pointerEvents: "none" }}>
 
-        {/* TOP SCROLL GUIDE (Fixed, fades on scroll) */}
-        <div 
-          style={{ 
-            position: "fixed", 
-            top: "14%", 
-            left: 0, 
-            width: "100%",
-            zIndex: 100, 
-            display: "flex",
-            justifyContent: "center",
-            pointerEvents: "none"
-          }}
-        >
-          {/* GSAP Target (No CSS animations to conflict with GSAP) */}
-          <div id="scroll-guide" style={{ willChange: "transform, opacity" }}>
-            {/* CSS Entrance Animation Container */}
-            <div style={{ 
-              display: "flex", flexDirection: "column", alignItems: "center",
-              animation: "entrance 1s ease-out forwards" 
-            }}>
-              <div style={{ 
-                fontFamily: "var(--font-mono)", 
-                fontSize: 11, 
-                letterSpacing: "0.6em", 
-                color: "#00D2BE", 
-                textTransform: "uppercase",
-                fontWeight: "bold",
-                padding: "10px 30px",
-                background: "rgba(7, 8, 14, 0.9)", // Solidify to avoid backdrop-filter lag
-                border: "1px solid rgba(0,210,190,0.3)",
-                textShadow: "0 0 15px rgba(0,210,190,0.6)",
-                clipPath: "polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%)",
-                boxShadow: "0 0 30px rgba(0,210,190,0.1)",
-                textAlign: "center"
-              }}>
-                Scroll to begin experience
-              </div>
-              
-              <div style={{ 
-                marginTop: 15,
-                animation: "bounce 2s infinite ease-in-out" 
-              }}>
-                <div style={{ 
-                  width: "1.5px", 
-                  height: 35, 
-                  background: "linear-gradient(to bottom, #00D2BE, transparent)" 
-                }} />
-              </div>
-            </div>
-          </div>
-
-          <style jsx>{`
-            @keyframes entrance {
-              from { opacity: 0; transform: translateY(-15px); }
-              to { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes bounce {
-              0%, 100% { transform: translateY(0); opacity: 0.3; }
-              50% { transform: translateY(10px); opacity: 0.9; }
-            }
-          `}</style>
-        </div>
-
         {/* Sc1 — Initial Hero (camera wide) */}
-        <section style={{ minHeight: "100vh" }} />
+        <section style={{ minHeight: "120vh", display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "center", paddingBottom: "10vh" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, opacity: 0.6 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.3em", color: "#00D2BE", textTransform: "uppercase" }}>Scroll to explore the machine</span>
+            <div style={{ width: 1, height: 40, background: "linear-gradient(to bottom, #00D2BE, transparent)" }} />
+          </div>
+        </section>
 
         {/* Sc2 — W14 Intro (camera pulls in slightly) */}
         <section style={{ minHeight: "160vh", display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "flex-start", padding: "0 clamp(20px,6vw,72px) 14vh" }}>
