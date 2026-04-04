@@ -157,6 +157,15 @@ function SceneContent() {
       scrollTrigger: { trigger: document.body, start: "top top", end: "bottom bottom", scrub: 1.2 },
     });
 
+    // Initial guide fade out and move up
+    tl.to("#scroll-guide", { 
+      opacity: 0, 
+      y: -80, // Moves up 80 pixels as we scroll
+      scale: 0.95, 
+      duration: 0.8,
+      ease: "power2.out"
+    }, 0);
+
     // Sc2 — Initial text appear (camera pulls in slightly)
     tl.to(cam.position, { x: 6.5, y: 2.2, z: 6.5, ease: "power2.inOut" }, 0)
       .to(look, { x: 0, y: 0.4, z: 0, ease: "power2.inOut" }, 0)
