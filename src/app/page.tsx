@@ -448,7 +448,7 @@ function Experience() {
           }}
         >
           {/* GSAP Target (No CSS animations to conflict with GSAP) */}
-          <div id="scroll-guide">
+          <div id="scroll-guide" style={{ willChange: "transform, opacity" }}>
             {/* CSS Entrance Animation Container */}
             <div style={{ 
               display: "flex", flexDirection: "column", alignItems: "center",
@@ -462,8 +462,7 @@ function Experience() {
                 textTransform: "uppercase",
                 fontWeight: "bold",
                 padding: "10px 30px",
-                background: "rgba(0,0,0,0.5)",
-                backdropFilter: "blur(6px)",
+                background: "rgba(7, 8, 14, 0.9)", // Solidify to avoid backdrop-filter lag
                 border: "1px solid rgba(0,210,190,0.3)",
                 textShadow: "0 0 15px rgba(0,210,190,0.6)",
                 clipPath: "polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%)",
