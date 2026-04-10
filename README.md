@@ -1,6 +1,6 @@
 # F1® "Night Tech" 3D Viewer
 
-A hyper-realistic, scroll-driven 3D web experience designed to showcase an F1 Power Unit and chassis architecture using modern web technologies. Engineered with a brutalist "Mercedes-AMG Hacker" aesthetic.
+A hyper-realistic, scroll-driven 3D web experience designed to showcase an F1 Power Unit and chassis architecture using modern web technologies. Engineered with a "Mercedes-AMG Hacker" aesthetic.
 
 **Live Demo: [f1-amg.nikstu.tech](https://f1-amg.nikstu.tech/)**
 
@@ -18,7 +18,7 @@ The experience is accompanied by a generative, aggressive V6 engine telemetry sy
 
 ## Core Features
 
-- **Telemetry Audio Engine**: A custom Web Audio API synthesizer that generates high-fidelity telemetry pings and F1 frequency blips (zero external audio assets used).
+- **Telemetry Audio Engine**: A custom Web Audio API synthesizer that generates high-fidelity telemetry pings and F1 frequency blips (zero external audio assets used ).
 - **Cinematic Scrollytelling**: 8 distinct GSAP `ScrollTrigger` camera maneuvers perfectly choreographed to the DOM flow, culminating in an intricate "Exploded Blueprint View" separating components into mass vectors.
 - **Aggressive Night-Tech Aesthetics**: A bespoke dark mode UI featuring glowing '#00D2BE' teal highlights, raw data telemetry, and precision grid overlays mirroring Mercedes-AMG Petronas F1 visual guidelines.
 - **Dynamic HUD**: HTML overlays locked directly onto 3D world coordinates for absolute precision, complete with real-time scaling and perspective rendering via `@react-three/drei`.
