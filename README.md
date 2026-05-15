@@ -36,17 +36,6 @@ The experience is accompanied by a generative, aggressive V6 engine telemetry sy
 - **Audio**: Web Audio API `AudioContext`
 - **Deployment**: Vercel
 
-## Local Development
-
-```bash
-# Install dependencies
-npm install
-
-# Start the dev server
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result. Scroll down smoothly to experience the timeline injection!
 
 ## Deployment
 
